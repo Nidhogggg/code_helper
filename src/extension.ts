@@ -17,15 +17,15 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showErrorMessage('API连接测试失败: ' + err.message);
 	});
 
-    const provider = vscode.languages.registerCompletionItemProvider(
+    const provider = vscode.languages.registerInlineCompletionItemProvider(
         ['python', 'javascript'],
         {
-            async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
+            async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
                 // 获取当前代码上下文
                 const textBeforeCursor = document.getText(
                     new vscode.Range(
-                        new vscode.Position(Math.max(0, position.line - 5), 0),
-                        position
+                        position.line, 0,
+                        position.line, position.character
                     )
                 );
 
@@ -40,12 +40,25 @@ export function activate(context: vscode.ExtensionContext) {
                     });
 					// 添加调试输出
 					console.log('Full API Response:', response.data);
-                    const completion = new vscode.CompletionItem(
-                        response.data.response.trim(),
-                        vscode.CompletionItemKind.Snippet
+
+                    const suggestion = response.data.response.trim();
+                    const item = new vscode.InlineCompletionItem(
+                        new vscode.SnippetString(suggestion)
                     );
 
-                    return [completion];
+                    // 添加样式控制（需要主题支持）
+                    item.range = new vscode.Range(
+                        position,
+                        position.translate(0, suggestion.length)
+                    );
+
+                    // 添加确认标记（会在右侧显示 "↩ to apply"）
+                    item.command = {
+                        command: 'editor.action.inlineSuggest.commit',
+                        title: '确认补全'
+                    };
+
+                    return [item];
                 } catch (error) {
                     if (axios.isAxiosError(error)) {
 						console.error('API请求错误详情:', error.response?.data);
@@ -57,9 +70,21 @@ export function activate(context: vscode.ExtensionContext) {
 					return [];
                 }
             }
-        },
-		'.'  // 触发补全的字符
+        }
     );
 
-    context.subscriptions.push(provider);
+    const tabHandler = vscode.commands.registerCommand('extension.acceptGhostText', () => {
+        vscode.commands.executeCommand('editor.action.inlineSuggest.commit');
+    });
+
+    // 绑定 Tab 键到确认命令
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(e => {
+            if (e.contentChanges.some(change => change.text === '\t')) {
+                vscode.commands.executeCommand('extension.acceptGhostText');
+            }
+        })
+    );
+
+    context.subscriptions.push(provider, tabHandler);
 }
