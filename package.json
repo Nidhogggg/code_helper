@@ -1,34 +1,44 @@
 {
   "name": "ollama-code-helper",
-  "displayName": "code_helper",
-  "description": "",
+  "publisher": "your-name",
+  "displayName": "Ollama Code Helper",
+  "description": "AI code completion powered by Ollama",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.99.0"
   },
   "categories": [
-    "Other"
+      "Programming Languages"
   ],
   "activationEvents": [
-  "onLanguage:python",
-  "onLanguage:javascript",
-  "onLanguage:typescript"],
+      "onCommand:ollama-code.triggerCompletion"
+  ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "ollama-code-helper.helloWorld",
-        "title": "Ollama Code Complete"
-      }
-    ]
+      "commands": [
+          {
+              "command": "ollama-code.triggerCompletion",
+              "title": "Trigger Ollama Code Completion"
+          },
+          {
+              "command": "ollama-code.acceptGhostText",
+              "title": "Accept Ollama Suggestion"
+          }
+      ],
+      "keybindings": [
+          {
+              "command": "ollama-code.triggerCompletion",
+              "key": "f1",
+              "when": "editorTextFocus"
+          }
+      ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
+      "vscode:prepublish": "npm run compile",
+      "compile": "tsc -p ./",
+      "watch": "tsc -watch -p ./",
+      "pretest": "npm run compile && npm run lint",
+      "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
