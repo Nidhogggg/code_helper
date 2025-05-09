@@ -121,8 +121,132 @@ private getWebviewContent(): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ollama Chat</title>
-    <style>
-        /* 保持原有样式不变 */
+<style>
+        :root {
+            --user-bubble: #0078d4;
+            --bot-bubble: #f3f3f3;
+            --user-text: white;
+            --bot-text: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        #messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-bubble);
+            color: var(--user-text);
+            border-bottom-right-radius: 4px;
+            margin-left: 20%;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background-color: var(--bot-bubble);
+            color: var(--bot-text);
+            border-bottom-left-radius: 4px;
+            margin-right: 20%;
+        }
+
+        #input-area {
+            display: flex;
+            gap: 8px;
+            padding: 16px 0;
+            border-top: 1px solid var(--vscode-input-border);
+            margin-top: 8px;
+        }
+
+        #question-input {
+            flex-grow: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 20px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            outline: none;
+        }
+
+        #send-button {
+            padding: 10px 20px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #send-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        #code-context {
+            font-family: var(--vscode-editor-font-family);
+            font-size: 0.9em;
+            background-color: var(--vscode-textBlockQuote-background);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--vscode-scrollbarSlider-background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-activeBackground);
+            border-radius: 4px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 600px) {
+            .message {
+                max-width: 90%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -130,7 +254,7 @@ private getWebviewContent(): string {
         <div id="code-context"></div>
         <div id="messages"></div>
         <div id="input-area">
-            <input id="question-input" placeholder="Ask about this code...">
+            <input id="question-input" placeholder="Type your question here..." autofocus>
             <button id="send-button">Send</button>
         </div>
     </div>
@@ -139,6 +263,12 @@ private getWebviewContent(): string {
         (function() {
             const vscode = acquireVsCodeApi();
             let currentCode = '';
+
+            // 添加时间戳
+            function getTime() {
+                const now = new Date();
+                return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
 
             // 更安全的DOM操作函数
             function addMessage(text, sender) {
@@ -149,6 +279,22 @@ private getWebviewContent(): string {
                 messageDiv.classList.add('message');
                 messageDiv.classList.add(sender + '-message');
                 messageDiv.textContent = text;
+
+                // 添加消息内容
+                const content = document.createElement('div');
+                content.textContent = text;
+
+                // 添加时间戳
+                const time = document.createElement('div');
+                time.className = 'message-time';
+                time.textContent = getTime();
+                time.style.fontSize = '0.8em';
+                time.style.opacity = '0.7';
+                time.style.marginTop = '4px';
+                time.style.textAlign = sender === 'user' ? 'right' : 'left';
+
+
+                messageDiv.appendChild(time);
                 messagesDiv.appendChild(messageDiv);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
