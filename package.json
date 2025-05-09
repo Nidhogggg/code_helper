@@ -23,6 +23,16 @@
           {
               "command": "ollama-code.acceptGhostText",
               "title": "Accept Ollama Suggestion"
+          },
+          {
+            "command": "ollama-code.openChat",
+            "title": "Open Ollama Chat",
+            "category": "Ollama Code"
+          },
+          {
+            "command": "ollama-code.chatWithSelection",
+            "title": "Ask Ollama about Selection",
+            "category": "Ollama Code"
           }
       ],
       "keybindings": [
@@ -31,14 +41,28 @@
               "key": "f1",
               "when": "editorTextFocus"
           }
+      ],
+      "menus": {
+      "editor/context": [
+        {
+          "command": "ollama-code.chatWithSelection",
+          "group": "navigation",
+          "when": "editorHasSelection"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ollama-code.openChat",
+          "when": "true"
+        }
       ]
+    }
   },
   "scripts": {
-      "vscode:prepublish": "npm run compile",
-      "compile": "tsc -p ./",
-      "watch": "tsc -watch -p ./",
-      "pretest": "npm run compile && npm run lint",
-      "lint": "eslint src --ext ts"
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

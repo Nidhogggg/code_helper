@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
+import { OllamaChatPanel } from './OllamaChatPanel';
 
 // 使用模块级变量替代ExtensionContext属性
 let triggeredByF1 = false;
@@ -165,6 +166,42 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
     );
+
+    // 注册聊天面板相关命令
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ollama-code.openChat', () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage('No active editor');
+                return;
+            }
+            const code = editor.document.getText(editor.selection) || editor.document.getText();
+            OllamaChatPanel.createOrShow(context, code);
+        }),
+
+        vscode.commands.registerCommand('ollama-code.chatWithSelection', () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) return;
+
+            const code = editor.document.getText(editor.selection);
+            if (!code) {
+                vscode.window.showInformationMessage('Please select some code first');
+                return;
+            }
+            OllamaChatPanel.createOrShow(context, code);
+        })
+    );
+
+    // 注册Webview面板恢复逻辑
+    if (vscode.window.registerWebviewPanelSerializer) {
+        vscode.window.registerWebviewPanelSerializer('ollamaChat', {
+            async deserializeWebviewPanel(panel: vscode.WebviewPanel) {
+                OllamaChatPanel.revive(panel, context.extensionUri);
+            }
+        });
+    }
+
+    // 添加到订阅列表
     context.subscriptions.push(provider, triggerCommand, tabHandler);
 }
 
