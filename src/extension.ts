@@ -4,6 +4,25 @@ import axios from 'axios';
 // 使用模块级变量替代ExtensionContext属性
 let triggeredByF1 = false;
 
+function filterCodeCompletion(response: string, existingText: string): string {
+    // 移除API可能添加的格式标记
+    let cleaned = response
+        .replace(/^[\s`]*([\s\S]*?)[\s`]*$/g, '\$1') // 去除代码块标记
+        .replace(/^(?:Here(?:'s| is)|Completion:?)\s*/i, '') // 去除引导语
+        .trim();
+
+    // 确保不会重复已有内容
+    if (cleaned.startsWith(existingText)) {
+        cleaned = cleaned.slice(existingText.length);
+    }
+
+    // 只取第一行内容（适合行内补全）
+    const firstLine = cleaned.split('\n')[0];
+
+    // 移除行内注释
+    return firstLine.split(/\/\/|\#/)[0].trim();
+}
+
 export function activate(context: vscode.ExtensionContext) {
     const outputChannel = vscode.window.createOutputChannel('Ollama Code Completion');
     context.subscriptions.push(outputChannel);
@@ -82,16 +101,23 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // 构造完整的提示词
                 const fullPrompt = `
-                    [Imports]
-                    ${imports.join('\n')}
+                [INST] <<SYS>>
+                You are a professional code assistant. Complete ONLY the missing part at the cursor position.
+                DO NOT repeat any code that already exists before the cursor.
+                Provide ONLY the code that should come next, without any explanations or notes.
+                Keep the completion concise and relevant to the immediate context.
+                <</SYS>>
 
-                    [Surrounding Code]
-                    ${surroundingCode}
+                Current file imports:
+                ${imports.join('\n')}
 
-                    [Current Context]
-                    ${textBeforeCursor}
+                Surrounding context (lines ${position.line - 2}-${position.line + 2}):
+                ${surroundingCode}
 
-                    Generate code completion:
+                Complete ONLY what comes after this code (DO NOT REPEAT IT):
+                ${textBeforeCursor}[/INST]
+
+                Completion:
                 `;
 
                 try {
@@ -99,15 +125,16 @@ export function activate(context: vscode.ExtensionContext) {
                     const response = await axios.post('http://localhost:11434/api/generate', {
                         model: 'codellama:7b-instruct-q4_K_M',
                         prompt: fullPrompt,
-                        max_tokens: 50,
-                        temperature: 0.3,
+                        max_tokens: 30,
+                        temperature: 0.1,
+                        stop: ['\n', '//', '#', '/*', '"""', "'''", '</'],
                         stream: false
                     });
 
                     console.log('Prompt:', fullPrompt);
                     console.log('Full API Response:', response.data);
 
-                    const suggestion = response.data.response.trim();
+                    const suggestion = filterCodeCompletion(response.data.response.trim(), textBeforeCursor);
                     const item = new vscode.InlineCompletionItem(
                         new vscode.SnippetString(suggestion)
                     );
